@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { StudioWorkspace } from "@/components/studio/studio-workspace";
 import { isAiConfigured } from "@/lib/ai/anthropic";
+import { loadCategories, loadComponents } from "@/lib/data/library";
 
 export async function generateMetadata({ params }: PageProps<"/studio/[projectId]">): Promise<Metadata> {
   const { projectId } = await params;
@@ -18,9 +19,11 @@ export default async function StudioPage({ params }: PageProps<"/studio/[project
   if (!z.uuid().safeParse(projectId).success) notFound();
   const user = await requireUser();
   const supabase = await createClient();
-  const [{ data: project }, { data: prefs }] = await Promise.all([
+  const [{ data: project }, { data: prefs }, components, categories] = await Promise.all([
     supabase.from("projects").select("id, name, html, updated_at").eq("id", projectId).maybeSingle(),
     supabase.from("user_preferences").select("editor_font_size, editor_word_wrap, editor_minimap, autosave, default_viewport").eq("user_id", user.id).maybeSingle(),
+    loadComponents(user.id),
+    loadCategories(),
   ]);
   if (!project) notFound();
   // Track "recently opened" without blocking render on failure.
@@ -30,6 +33,7 @@ export default async function StudioPage({ params }: PageProps<"/studio/[project
       key={project.id}
       project={project}
       aiConfigured={isAiConfigured()}
+      library={{ components, categories }}
       prefs={prefs ?? { editor_font_size: 13, editor_word_wrap: false, editor_minimap: true, autosave: true, default_viewport: "desktop" }}
     />
   );

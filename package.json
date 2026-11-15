@@ -12,7 +12,8 @@
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "playwright test --trace off",
     "postinstall": "node scripts/copy-monaco.mjs",
-    "data:caniemail": "node scripts/build-caniemail.mjs"
+    "data:caniemail": "node scripts/build-caniemail.mjs",
+    "seed:build": "node scripts/build-seed.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
