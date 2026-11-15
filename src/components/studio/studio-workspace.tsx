@@ -5,7 +5,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { toast } from "sonner";
 import {
   Save, Wand2, Download, Copy, Upload, Search, Undo2, Redo2, Eye, EyeOff, ChevronLeft, MoreHorizontal, FoldVertical, UnfoldVertical,
-  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose,
+  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,8 +32,6 @@ export interface StudioProject {
   updated_at: string;
 }
 
-const ANALYSIS_ENABLED = false;
-
 function hasAmpscript(html: string) {
   return /%%\[|%%=/.test(html);
 }
@@ -46,6 +44,7 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
   const [showPreview, setShowPreview] = React.useState(true);
   const [showInspector, setShowInspector] = React.useState(true);
   const [inspectorTab, setInspectorTab] = React.useState<InspectorTab>("issues");
+  const [analyzeNonce, setAnalyzeNonce] = React.useState(0);
   const [markers, setMarkers] = React.useState<EditorMarker[]>([]);
   const [pendingUpload, setPendingUpload] = React.useState<{ name: string; html: string } | null>(null);
   const [versionDialog, setVersionDialog] = React.useState(false);
@@ -141,7 +140,7 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
             {showPreview ? <EyeOff /> : <Eye />} <span className="hidden lg:inline">Preview</span>
           </Button>
           <Button size="sm" variant="ghost" onClick={download}><Download /> <span className="hidden lg:inline">Download</span></Button>
-          <StudioActionsSlot editorRef={editor} html={html} onOpenInspector={(tab) => { setInspectorTab(tab); setShowInspector(true); }} />
+          <StudioActionsSlot editorRef={editor} html={html} onOpenInspector={(tab) => { setInspectorTab(tab); setShowInspector(true); if (tab === "issues") setAnalyzeNonce((n) => n + 1); }} />
           <Button size="sm" onClick={() => save()} disabled={status.state === "saving"} data-testid="save-button">
             {status.state === "saving" ? <Loader2 className="animate-spin" /> : <Save />} Save
           </Button>
@@ -222,6 +221,7 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
                 editorRef={editor}
                 applyExternal={applyExternal}
                 persist={persist}
+                analyzeNonce={analyzeNonce}
               />
             </Panel>
           </>
@@ -281,14 +281,10 @@ function ToolbarButton({ label, shortcut, onClick, icon: Icon }: { label: string
 
 /** Analyze / AI Fix buttons; they open the matching inspector tab. */
 function StudioActionsSlot({ onOpenInspector }: { editorRef: React.RefObject<CodeEditorHandle | null>; html: string; onOpenInspector: (tab: InspectorTab) => void }) {
-  if (!ANALYSIS_ENABLED) return null;
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => onOpenInspector("issues")} data-testid="analyze-button">
-        <Search /> <span className="hidden md:inline">Analyze</span>
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => onOpenInspector("ai")} data-testid="ai-fix-button">
-        <Wand2 /> <span className="hidden md:inline">AI Fix</span>
+        <ShieldCheck /> <span className="hidden md:inline">Analyze</span>
       </Button>
     </>
   );
