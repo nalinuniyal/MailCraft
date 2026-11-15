@@ -83,7 +83,7 @@ export function useAnalysis(html: string, onMarkers: (m: EditorMarker[]) => void
   return { issues, validation, state, running, setRunning, analyze, checkLinks };
 }
 
-export function IssuesTab({ analysis, html, projectId, onReveal }: { analysis: ReturnType<typeof useAnalysis>; html: string; projectId: string; onReveal: (line: number) => void }) {
+export function IssuesTab({ analysis, html, projectId, onReveal, renderActions }: { analysis: ReturnType<typeof useAnalysis>; html: string; projectId: string; onReveal: (line: number) => void; renderActions?: (i: Issue) => React.ReactNode }) {
   const { issues, state, running, setRunning, analyze, checkLinks } = analysis;
   const [lastReport, setLastReport] = React.useState<string | null>(null);
   const compatStale = state.compat && state.compatHtml !== html;
@@ -118,6 +118,7 @@ export function IssuesTab({ analysis, html, projectId, onReveal }: { analysis: R
       <IssueList
         issues={issues}
         onReveal={onReveal}
+        renderActions={renderActions}
         empty={<div className="text-muted-foreground flex flex-col items-center gap-2 py-8 text-center text-sm"><CheckCircle2 className="text-success size-6" /> No issues for this filter.</div>}
       />
     </div>

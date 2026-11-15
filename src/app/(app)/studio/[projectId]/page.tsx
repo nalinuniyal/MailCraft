@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { StudioWorkspace } from "@/components/studio/studio-workspace";
+import { isAiConfigured } from "@/lib/ai/anthropic";
 
 export async function generateMetadata({ params }: PageProps<"/studio/[projectId]">): Promise<Metadata> {
   const { projectId } = await params;
@@ -28,6 +29,7 @@ export default async function StudioPage({ params }: PageProps<"/studio/[project
     <StudioWorkspace
       key={project.id}
       project={project}
+      aiConfigured={isAiConfigured()}
       prefs={prefs ?? { editor_font_size: 13, editor_word_wrap: false, editor_minimap: true, autosave: true, default_viewport: "desktop" }}
     />
   );

@@ -5,7 +5,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { toast } from "sonner";
 import {
   Save, Wand2, Download, Copy, Upload, Search, Undo2, Redo2, Eye, EyeOff, ChevronLeft, MoreHorizontal, FoldVertical, UnfoldVertical,
-  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose, ShieldCheck,
+  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,7 +36,7 @@ function hasAmpscript(html: string) {
   return /%%\[|%%=/.test(html);
 }
 
-export function StudioWorkspace({ project, prefs }: { project: StudioProject; prefs: Pick<PreferencesRow, "editor_font_size" | "editor_word_wrap" | "editor_minimap" | "autosave" | "default_viewport"> }) {
+export function StudioWorkspace({ project, prefs, aiConfigured = false }: { project: StudioProject; aiConfigured?: boolean; prefs: Pick<PreferencesRow, "editor_font_size" | "editor_word_wrap" | "editor_minimap" | "autosave" | "default_viewport"> }) {
   const editor = React.useRef<CodeEditorHandle>(null);
   const [name, setName] = React.useState(project.name);
   const [html, setHtml] = React.useState(project.html);
@@ -222,6 +222,7 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
                 applyExternal={applyExternal}
                 persist={persist}
                 analyzeNonce={analyzeNonce}
+                aiConfigured={aiConfigured}
               />
             </Panel>
           </>
@@ -285,6 +286,9 @@ function StudioActionsSlot({ onOpenInspector }: { editorRef: React.RefObject<Cod
     <>
       <Button size="sm" variant="outline" onClick={() => onOpenInspector("issues")} data-testid="analyze-button">
         <ShieldCheck /> <span className="hidden md:inline">Analyze</span>
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => onOpenInspector("ai")} data-testid="ai-button">
+        <Sparkles /> <span className="hidden md:inline">AI</span>
       </Button>
     </>
   );

@@ -22,7 +22,15 @@ npm run dev
 4. Copy the project URL and anon/publishable key into `.env.local`.
 
 ### 2. Anthropic
-Set `ANTHROPIC_API_KEY`. It is only read in server code (`src/lib/ai`) and never shipped to the browser.
+Set `ANTHROPIC_API_KEY`. It is only read in server code (`src/lib/ai/anthropic.ts`, marked `server-only`) and never shipped to the browser. Without it the AI tab says AI isn't configured and the AI routes return `503`; nothing is simulated.
+
+How the AI features work:
+- **AI analysis** (`POST /api/ai/analyze`, `claude-opus-5-5`): structured findings with severity, explanation and an optional fix. Saved as an `analysis_reports` row of kind `ai` keyed by the HTML's SHA-256, so QA reports include it only for the exact same version.
+- **Fix with AI** (`POST /api/ai/fix`): fixes one validator or AI finding.
+- **Assistant** (`POST /api/ai/assist`, `claude-sonnet-5-5`): chat about the email, optionally with the editor selection.
+- Every change is returned as exact find/replace patches. The user reviews them in a side-by-side diff, picks which to apply, and can undo. Applying saves a version with source `ai`. Claude never writes to the project on its own.
+- Requests use structured outputs (JSON Schema, re-validated with zod), streaming, prompt caching for the system prompt, and server-side refusal fallbacks (`fallbacks: "default"`).
+- Each user gets `AI_RATE_LIMIT_PER_HOUR` AI calls per hour (Postgres-backed), and HTML over `AI_MAX_HTML_BYTES` is not sent to Claude.
 
 ### Environment variables
 | Variable | Required | Notes |
@@ -34,6 +42,7 @@ Set `ANTHROPIC_API_KEY`. It is only read in server code (`src/lib/ai`) and never
 | `ANTHROPIC_MODEL_ANALYZE` | no | default `claude-opus-5-5` |
 | `ANTHROPIC_MODEL_ASSIST` | no | default `claude-sonnet-5-5` |
 | `AI_RATE_LIMIT_PER_HOUR` | no | default 30 |
+| `AI_MAX_HTML_BYTES` | no | default 400000 |
 | `LINK_CHECK_RATE_LIMIT_PER_HOUR` | no | default 20 |
 
 Without Supabase variables the app shows a `/setup` page instead of crashing.
