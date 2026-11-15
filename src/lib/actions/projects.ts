@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { BLANK_EMAIL } from "@/lib/email/starter";
 import { MAX_HTML_BYTES } from "@/lib/email/limits";
 import { byteLength } from "@/lib/utils";
+import { consumeRateLimit, envInt } from "@/lib/rate-limit";
 import type { VersionSource } from "@/lib/types/database";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
@@ -28,6 +29,8 @@ export async function createProject(input: {
   if (!html.success) return { ok: false, error: html.error.issues[0].message };
 
   const supabase = await createClient();
+  const limit = await consumeRateLimit(supabase, "project-create", envInt("PROJECT_CREATE_RATE_LIMIT_PER_HOUR", 100));
+  if (!limit.allowed) return { ok: false, error: "You've created a lot of emails in the last hour. Try again later." };
   const { data, error } = await supabase
     .from("projects")
     .insert({ name: name.data, html: html.data, description: input.description?.slice(0, 1000) ?? null, source_template_id: input.templateId ?? null })
@@ -143,4 +146,21 @@ export async function createAndOpen(formData: FormData) {
   const result = await createProject({ name: String(formData.get("name") || "Untitled email") });
   if (result.ok) redirect(`/studio/${result.data.id}`);
   throw new Error(result.error);
+}
+
+/** Restores an earlier version: the project HTML is replaced and a new "restore" version is recorded. History is never rewritten. */
+export async function restoreVersion(projectId: string, versionId: string): Promise<ActionResult<{ versionNumber: number }>> {
+  await requireUser();
+  if (!z.uuid().safeParse(projectId).success || !z.uuid().safeParse(versionId).success) return { ok: false, error: "Version not found." };
+  const supabase = await createClient();
+  const { data: v } = await supabase.from("email_versions").select("html, version_number").eq("id", versionId).eq("project_id", projectId).maybeSingle();
+  if (!v) return { ok: false, error: "Version not found." };
+  const { error } = await supabase.from("projects").update({ html: v.html }).eq("id", projectId);
+  if (error) return { ok: false, error: error.message };
+  const { data: nv, error: vErr } = await supabase.from("email_versions").insert({ project_id: projectId, html: v.html, source: "restore", message: `Restored v${v.version_number}` }).select("version_number").single();
+  if (vErr || !nv) return { ok: false, error: vErr?.message ?? "Could not record the restore." };
+  await logActivity(supabase, "version.restored", projectId, { version: nv.version_number, from: v.version_number });
+  revalidatePath(`/projects/${projectId}/history`);
+  revalidatePath("/dashboard");
+  return { ok: true, data: { versionNumber: nv.version_number } };
 }

@@ -7,6 +7,9 @@ An AI-assisted studio for HTML email developers: write, upload, validate, debug,
 ## Stack
 Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · shadcn/ui (Radix) · Monaco Editor · Supabase (Postgres, Auth, RLS) · Anthropic Claude API (server-side only) · Vercel.
 
+## Deploying
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the Vercel + Supabase guide, environment variables, security checklist and pre-launch steps.
+
 ## Quick start
 
 ```bash
@@ -44,6 +47,10 @@ How the AI features work:
 | `AI_RATE_LIMIT_PER_HOUR` | no | default 30 |
 | `AI_MAX_HTML_BYTES` | no | default 400000 |
 | `LINK_CHECK_RATE_LIMIT_PER_HOUR` | no | default 20 |
+| `ANALYZE_RATE_LIMIT_PER_HOUR` | no | full analysis runs, default 300 |
+| `PROJECT_CREATE_RATE_LIMIT_PER_HOUR` | no | default 100 |
+| `REPORT_RATE_LIMIT_PER_HOUR` | no | QA reports, default 60 |
+| `LIBRARY_WRITE_RATE_LIMIT_PER_HOUR` | no | template and component saves, default 120 |
 
 Without Supabase variables the app shows a `/setup` page instead of crashing.
 
@@ -52,6 +59,17 @@ Without Supabase variables the app shows a `/setup` page instead of crashing.
 - **Templates** (`/templates`): sandboxed, script-free thumbnails; filter by category, built-in or yours; "Use template" creates a new project. In the studio, ⋯ → *Save as template* stores your own.
 - **Components** (`/components`, studio toolbar → *Insert*): `{{key|default}}` placeholders become form fields; values are HTML-escaped on insert. ⋯ → *Save selection as component* stores your own.
 - **SFMC toolkit** (`/sfmc`): AMPscript snippets, personalization strings, a sample-subscriber preview and static AMPscript checks. The preview substitutes personalization strings and simple variables only; it does **not** execute AMPscript (conditions, loops, lookups and functions are shown as markers). AMPscript checks also run in the studio's live validation. The Marketing Cloud API integration is designed (`src/lib/sfmc/integration.ts`) but not built.
+
+## Projects, versions and settings
+- Every save is an immutable version. **Version history** (`/projects/<id>/history`, or studio ⋯ → *Version history*) compares any two versions side by side or as previews, downloads any version, and restores one. Restoring adds a new version; nothing is deleted.
+- **Settings** (`/settings`): display name, theme, editor font size, default preview, password change, your workspace limits, and a JSON export of all your projects, versions, reports, templates and components.
+
+## Security
+- Nonce-based Content Security Policy on every response (`src/proxy.ts`, `src/lib/security/csp.ts`), plus HSTS, COOP, `nosniff` and a restrictive Permissions-Policy (`next.config.ts`).
+- Email HTML is sanitized for previews and rendered in sandboxed iframes without `allow-scripts` or `allow-same-origin`.
+- Uploads are type and size checked (1 MB); server actions reject bodies over 1.5 MB.
+- Per-user hourly rate limits on AI, analysis, link checks, project creation, QA reports and library saves, stored in Postgres.
+- RLS on every table; the Anthropic key is server-only. `/api/health` reports configuration without exposing secrets.
 
 ## Scripts
 | Command | What it does |
@@ -62,7 +80,7 @@ Without Supabase variables the app shows a `/setup` page instead of crashing.
 | `npm test` | unit tests (Vitest) |
 | `npm run seed:build` | regenerates `supabase/seed.sql` from `scripts/seed/` |
 | `npm run test:db` | applies migrations to a throwaway Postgres DB and runs RLS isolation tests (`PGURL` = superuser URL) |
-| `npm run test:e2e` | Playwright end-to-end tests against a running app + local stack |
+| `npm run test:e2e` | Playwright end-to-end tests (`e2e/*.spec.ts`): starts `next start` on :3100 after `npm run build`, or set `E2E_BASE_URL` to test a running app. Needs a Supabase with email confirmation off. |
 | `e2e/stack/up.sh` | starts a local Supabase-compatible stack in Docker (Postgres + GoTrue + PostgREST) and writes `.env.e2e` |
 
 ## Project layout
