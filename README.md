@@ -47,6 +47,12 @@ How the AI features work:
 
 Without Supabase variables the app shows a `/setup` page instead of crashing.
 
+## Libraries and SFMC
+- **Seed data** (`supabase/seed.sql`): 11 template categories, 12 built-in templates and 15 components, generated from `scripts/seed/*.mjs` by `npm run seed:build`. The seed is idempotent (deterministic ids, upserts). Every built-in template passes MailCraft's validator with no critical or high issues (`tests/seed.test.ts`).
+- **Templates** (`/templates`): sandboxed, script-free thumbnails; filter by category, built-in or yours; "Use template" creates a new project. In the studio, ⋯ → *Save as template* stores your own.
+- **Components** (`/components`, studio toolbar → *Insert*): `{{key|default}}` placeholders become form fields; values are HTML-escaped on insert. ⋯ → *Save selection as component* stores your own.
+- **SFMC toolkit** (`/sfmc`): AMPscript snippets, personalization strings, a sample-subscriber preview and static AMPscript checks. The preview substitutes personalization strings and simple variables only; it does **not** execute AMPscript (conditions, loops, lookups and functions are shown as markers). AMPscript checks also run in the studio's live validation. The Marketing Cloud API integration is designed (`src/lib/sfmc/integration.ts`) but not built.
+
 ## Scripts
 | Command | What it does |
 |---|---|
@@ -54,6 +60,7 @@ Without Supabase variables the app shows a `/setup` page instead of crashing.
 | `npm run build` / `npm start` | production build |
 | `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
 | `npm test` | unit tests (Vitest) |
+| `npm run seed:build` | regenerates `supabase/seed.sql` from `scripts/seed/` |
 | `npm run test:db` | applies migrations to a throwaway Postgres DB and runs RLS isolation tests (`PGURL` = superuser URL) |
 | `npm run test:e2e` | Playwright end-to-end tests against a running app + local stack |
 | `e2e/stack/up.sh` | starts a local Supabase-compatible stack in Docker (Postgres + GoTrue + PostgREST) and writes `.env.e2e` |

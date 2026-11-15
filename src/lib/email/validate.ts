@@ -2,6 +2,7 @@ import { scanHtml, attr, hasAttr, lineText, VOID_ELEMENTS, type ScanResult, type
 import { GMAIL_CLIP_BYTES } from "./limits";
 import type { Issue, IssueCategory, Severity } from "./types";
 import { byteLength } from "@/lib/utils";
+import { lintAmpscript } from "@/lib/sfmc/lint";
 
 type Draft = Omit<Issue, "id" | "source" | "snippet"> & { snippet?: string };
 
@@ -42,6 +43,7 @@ export function validateEmail(source: string): Issue[] {
   checkLayout(scan, add, source);
   checkAccessibility(scan, add);
   checkClientSpecific(scan, add, source);
+  if (/%%[\[=]|runat\s*=\s*["']?server/i.test(source)) for (const d of lintAmpscript(source)) add(d);
 
   const seen = new Set<string>();
   const out: Issue[] = [];
