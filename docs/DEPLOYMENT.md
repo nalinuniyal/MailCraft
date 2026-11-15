@@ -23,7 +23,10 @@ This guide takes a fresh clone to a production deployment. It takes about 20 min
 ### What RLS protects
 Every table (`profiles`, `user_preferences`, `projects`, `email_versions`, `analysis_reports`, `email_templates`, `saved_components`, `activity_log`, `template_categories`, `api_rate_limits`) has RLS enabled. User rows have owner-only policies, and `api_rate_limits` has no policies at all, so it is reachable only through the `consume_rate_limit()` function. Built-in templates and components (`is_system = true`, no owner) are readable by everyone and writable by no one. `npm run test:db` proves isolation between two users against a throwaway Postgres.
 
-## 2. Anthropic
+## 2. AI provider
+
+Pick one: Anthropic Claude (`ANTHROPIC_API_KEY`), xAI Grok (`XAI_API_KEY` or `GROK_API_KEY`, from console.x.ai) or Groq (`GROQ_API_KEY`, from console.groq.com, which has a free tier with low per-minute limits). Set `AI_PROVIDER` if more than one key is present. The rest of this section describes Claude.
+
 
 Create an API key in the [Claude Console](https://console.anthropic.com) under a workspace with a spend limit you are comfortable with. The key is read only in server code (`src/lib/ai/anthropic.ts` imports `server-only`), so the build fails if anything tries to import it into the browser bundle. Without a key the app still works, the AI tab says AI isn't configured, and the AI routes return `503 ai_not_configured`.
 
@@ -39,8 +42,9 @@ Models: AI analysis and fixes use `claude-opus-5-5`; the assistant chat uses `cl
    | `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | anon or publishable key |
    | `NEXT_PUBLIC_SITE_URL` | yes | production URL, used in auth emails |
-   | `ANTHROPIC_API_KEY` | for AI | mark as **Sensitive** |
-   | `ANTHROPIC_MODEL_ANALYZE`, `ANTHROPIC_MODEL_ASSIST` | no | model overrides |
+   | `ANTHROPIC_API_KEY`, `XAI_API_KEY`/`GROK_API_KEY` or `GROQ_API_KEY` | one, for AI | mark as **Sensitive** |
+   | `AI_PROVIDER` | no | `anthropic`, `xai` or `groq` |
+   | `AI_MODEL_ANALYZE`, `AI_MODEL_ASSIST` | no | model overrides |
    | `AI_RATE_LIMIT_PER_HOUR` | no | default 30 per user |
    | `AI_MAX_HTML_BYTES` | no | default 400000 |
    | `ANALYZE_RATE_LIMIT_PER_HOUR` | no | full analysis runs, default 300 |
@@ -50,7 +54,7 @@ Models: AI analysis and fixes use `claude-opus-5-5`; the assistant chat uses `cl
    | `LIBRARY_WRITE_RATE_LIMIT_PER_HOUR` | no | template and component saves, default 120 |
 
    `NEXT_PUBLIC_*` values are inlined at build time, so redeploy after changing them.
-3. Deploy. Then open `https://<your-domain>/api/health`. It should return `{"ok":true,"supabase":"configured","ai":"configured"}`. It reports whether settings are present; it never returns secrets.
+3. Deploy. Then open `https://<your-domain>/api/health`. It should return `{"ok":true,"supabase":"configured","ai":"configured","aiProvider":"groq",…}`. It reports whether settings are present; it never returns secrets.
 4. Add your custom domain, then update the Supabase Site URL and redirect URLs to match.
 
 ### Function duration
@@ -65,7 +69,7 @@ These are on by default; this list is what to verify after deploying.
 - **Uploads**: `.html`, `.htm` or `.txt` only, checked by extension, MIME type and content, max 1 MB (also enforced by a database check constraint). Server actions reject bodies over 1.5 MB.
 - **Rate limits**: per user, per hour, stored in Postgres (`consume_rate_limit`), so they hold across serverless instances.
 - **Headers**: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, a restrictive `Permissions-Policy`.
-- **Keys**: confirm the Anthropic key is not in the client bundle: `grep -r "sk-ant" .next/static` should print nothing.
+- **Keys**: confirm no AI key is in the client bundle: `grep -rE "sk-ant|xai-|gsk_" .next/static` should print nothing.
 
 ## 5. Testing before you ship
 

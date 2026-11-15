@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AI_MODELS, callStructured } from "@/lib/ai/anthropic";
+import { callStructured } from "@/lib/ai/client";
 import { ANALYZE_SYSTEM, emailBlock } from "@/lib/ai/prompts";
 import { AiAnalysisSchema, AI_ANALYSIS_JSON_SCHEMA, toIssues } from "@/lib/ai/schemas";
 import { lineOf } from "@/lib/ai/patches";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await callStructured({
-      model: AI_MODELS.analyze,
+      task: "analyze",
       system: ANALYZE_SYSTEM,
       messages: [{ role: "user", content: `${emailBlock(html)}\n\nAnalyze this email.` }],
       jsonSchema: AI_ANALYSIS_JSON_SCHEMA,

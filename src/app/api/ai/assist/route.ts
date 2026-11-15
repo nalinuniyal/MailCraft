@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AI_MODELS, callStructured } from "@/lib/ai/anthropic";
+import { callStructured } from "@/lib/ai/client";
 import { ASSIST_SYSTEM, emailBlock } from "@/lib/ai/prompts";
 import { AiAssistSchema, AI_ASSIST_JSON_SCHEMA } from "@/lib/ai/schemas";
 import { aiRequest, aiErrorResponse, AI_MAX_HTML_BYTES } from "@/lib/ai/route";
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const context = `${emailBlock(html)}${selection ? `\n\n<selected_code>\n${selection}\n</selected_code>` : ""}`;
   try {
     const result = await callStructured({
-      model: AI_MODELS.assist,
+      task: "assist",
       system: ASSIST_SYSTEM,
       messages: [...messages.slice(0, -1), { role: "user", content: `${context}\n\n${last.content}` }],
       jsonSchema: AI_ASSIST_JSON_SCHEMA,

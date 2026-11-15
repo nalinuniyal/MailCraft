@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
 import { SettingsForms } from "@/components/settings/settings-forms";
-import { isAiConfigured, AI_MODELS } from "@/lib/ai/anthropic";
+import { aiProviderInfo } from "@/lib/ai/client";
 import { envInt } from "@/lib/rate-limit";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -22,7 +22,7 @@ export default async function SettingsPage() {
         displayName={profile?.display_name ?? ""}
         prefs={prefs ?? { theme: "dark", editor_font_size: 13, editor_word_wrap: false, editor_minimap: true, autosave: true, default_viewport: "desktop" }}
         system={{
-          ai: isAiConfigured() ? { analyze: AI_MODELS.analyze, assist: AI_MODELS.assist } : null,
+          ai: aiProviderInfo(),
           aiPerHour: envInt("AI_RATE_LIMIT_PER_HOUR", 30),
           linksPerHour: envInt("LINK_CHECK_RATE_LIMIT_PER_HOUR", 20),
         }}

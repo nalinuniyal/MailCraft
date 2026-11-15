@@ -24,16 +24,24 @@ npm run dev
 3. Auth → URL configuration: set **Site URL** to your app URL and add `<app-url>/auth/confirm` to redirect URLs.
 4. Copy the project URL and anon/publishable key into `.env.local`.
 
-### 2. Anthropic
-Set `ANTHROPIC_API_KEY`. It is only read in server code (`src/lib/ai/anthropic.ts`, marked `server-only`) and never shipped to the browser. Without it the AI tab says AI isn't configured and the AI routes return `503`; nothing is simulated.
+### 2. AI provider
+Set one key. MailCraft supports three providers, all called only from server code (`src/lib/ai/`, marked `server-only`), so keys never reach the browser:
+
+| Provider | Key | Default models (override with `AI_MODEL_ANALYZE` / `AI_MODEL_ASSIST`) |
+|---|---|---|
+| Anthropic Claude | `ANTHROPIC_API_KEY` | `claude-opus-5-5` (analysis, fixes), `claude-sonnet-5-5` (assistant) |
+| xAI Grok | `XAI_API_KEY` (or `GROK_API_KEY`) | `grok-4` |
+| Groq | `GROQ_API_KEY` | `openai/gpt-oss-120b` |
+
+If several keys are set, Claude wins, then Grok, then Groq; set `AI_PROVIDER=anthropic|xai|groq` to choose. Grok and Groq go through their OpenAI-compatible APIs with JSON Schema output (falling back to JSON mode for models without it), and every answer is validated before it is used. Groq's free tier has low per-minute token limits, so large emails can be refused with a clear "too large" message; select a section and use the assistant instead. Without any key the AI tab says AI isn't configured and the AI routes return `503`; nothing is simulated.
 
 How the AI features work:
-- **AI analysis** (`POST /api/ai/analyze`, `claude-opus-5-5`): structured findings with severity, explanation and an optional fix. Saved as an `analysis_reports` row of kind `ai` keyed by the HTML's SHA-256, so QA reports include it only for the exact same version.
+- **AI analysis** (`POST /api/ai/analyze`, analysis model): structured findings with severity, explanation and an optional fix. Saved as an `analysis_reports` row of kind `ai` keyed by the HTML's SHA-256, so QA reports include it only for the exact same version.
 - **Fix with AI** (`POST /api/ai/fix`): fixes one validator or AI finding.
-- **Assistant** (`POST /api/ai/assist`, `claude-sonnet-5-5`): chat about the email, optionally with the editor selection.
-- Every change is returned as exact find/replace patches. The user reviews them in a side-by-side diff, picks which to apply, and can undo. Applying saves a version with source `ai`. Claude never writes to the project on its own.
-- Requests use structured outputs (JSON Schema, re-validated with zod), streaming, prompt caching for the system prompt, and server-side refusal fallbacks (`fallbacks: "default"`).
-- Each user gets `AI_RATE_LIMIT_PER_HOUR` AI calls per hour (Postgres-backed), and HTML over `AI_MAX_HTML_BYTES` is not sent to Claude.
+- **Assistant** (`POST /api/ai/assist`, assistant model): chat about the email, optionally with the editor selection.
+- Every change is returned as exact find/replace patches. The user reviews them in a side-by-side diff, picks which to apply, and can undo. Applying saves a version with source `ai`. The AI never writes to the project on its own.
+- Requests use structured outputs (JSON Schema, re-validated with zod). On Claude they also use streaming, prompt caching for the system prompt, and server-side refusal fallbacks (`fallbacks: "default"`).
+- Each user gets `AI_RATE_LIMIT_PER_HOUR` AI calls per hour (Postgres-backed), and HTML over `AI_MAX_HTML_BYTES` is not sent to the AI provider.
 
 ### Environment variables
 | Variable | Required | Notes |
@@ -41,9 +49,10 @@ How the AI features work:
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | anon or publishable key; RLS protects all data |
 | `NEXT_PUBLIC_SITE_URL` | recommended | used for auth email redirects |
-| `ANTHROPIC_API_KEY` | for AI features | server only |
-| `ANTHROPIC_MODEL_ANALYZE` | no | default `claude-opus-5-5` |
-| `ANTHROPIC_MODEL_ASSIST` | no | default `claude-sonnet-5-5` |
+| `ANTHROPIC_API_KEY`, `XAI_API_KEY` (or `GROK_API_KEY`), `GROQ_API_KEY` | one, for AI features | server only |
+| `AI_PROVIDER` | no | `anthropic`, `xai` or `groq`; default is the first key found |
+| `AI_MODEL_ANALYZE` / `AI_MODEL_ASSIST` | no | per-provider defaults above (`ANTHROPIC_MODEL_*` still work) |
+| `AI_BASE_URL` | no | override the Grok/Groq API base URL |
 | `AI_RATE_LIMIT_PER_HOUR` | no | default 30 |
 | `AI_MAX_HTML_BYTES` | no | default 400000 |
 | `LINK_CHECK_RATE_LIMIT_PER_HOUR` | no | default 20 |

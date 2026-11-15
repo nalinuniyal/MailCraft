@@ -77,7 +77,7 @@ export function AiNotConfigured() {
     <EmptyState
       icon={KeyRound}
       title="AI isn't configured yet"
-      description="Add ANTHROPIC_API_KEY to the server environment to enable Claude analysis, fixes and the assistant. The key stays on the server and is never sent to the browser."
+      description="Add an AI key to the server environment (ANTHROPIC_API_KEY for Claude, XAI_API_KEY for Grok or GROQ_API_KEY for Groq) to enable AI analysis, fixes and the assistant. The key stays on the server and is never sent to the browser."
       className="m-3"
     />
   );
@@ -131,10 +131,10 @@ function AiAnalysisView({ html, projectId, ai, onReveal }: { html: string; proje
           </Button>
         )}
       </div>
-      {running && <p className="text-muted-foreground text-xs">Claude is reviewing the email. This usually takes 20–60 seconds.</p>}
+      {running && <p className="text-muted-foreground text-xs">The AI is reviewing the email. This usually takes 20–60 seconds.</p>}
       {!result && !running && (
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Claude reviews the whole email for rendering risks, dark-mode and accessibility problems, and proposes fixes. Results are saved to this project and included in QA reports for the same version. Suggested fixes are only applied after you review them.
+          The AI reviews the whole email for rendering risks, dark-mode and accessibility problems, and proposes fixes. Results are saved to this project and included in QA reports for the same version. Suggested fixes are only applied after you review them.
         </p>
       )}
       {result && (
@@ -153,7 +153,7 @@ function AiAnalysisView({ html, projectId, ai, onReveal }: { html: string; proje
                 <Button size="xs" variant="outline" onClick={() => ai.setReview({ title: i.title, explanation: i.recommendation, patches: [fix], model: result.model })}><Wand2 /> Review fix</Button>
               ) : null;
             }}
-            empty={<p className="text-muted-foreground py-6 text-center text-sm">Claude found no issues for this filter.</p>}
+            empty={<p className="text-muted-foreground py-6 text-center text-sm">The AI found no issues for this filter.</p>}
           />
         </>
       )}
@@ -204,7 +204,7 @@ function AiChatView({ html, editorRef, ai }: { html: string; editorRef: React.Re
       <div className="scrollbar-thin min-h-0 flex-1 space-y-3 overflow-y-auto p-3" data-testid="ai-chat-log">
         {entries.length === 0 && (
           <div className="grid gap-2">
-            <p className="text-muted-foreground text-xs">Ask Claude about this email. It can explain code and propose edits, which you review before anything changes.</p>
+            <p className="text-muted-foreground text-xs">Ask the AI assistant about this email. It can explain code and propose edits, which you review before anything changes.</p>
             {suggestions.map((s) => (
               <button key={s} onClick={() => void send(s)} className="hover:bg-muted rounded-md border px-2.5 py-1.5 text-left text-xs">{s}</button>
             ))}
@@ -212,7 +212,7 @@ function AiChatView({ html, editorRef, ai }: { html: string; editorRef: React.Re
         )}
         {entries.map((e, i) => (
           <div key={i} className={cn("rounded-lg px-3 py-2 text-sm", e.role === "user" ? "bg-primary/10 ml-6" : "bg-muted/60 mr-2")}>
-            <p className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wide uppercase">{e.role === "user" ? "You" : `Claude${e.model ? ` · ${e.model}` : ""}`}</p>
+            <p className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wide uppercase">{e.role === "user" ? "You" : `Assistant${e.model ? ` · ${e.model}` : ""}`}</p>
             <div className="break-words whitespace-pre-wrap">{e.content}</div>
             {e.patches && e.patches.length > 0 && (
               <Button size="xs" className="mt-2" onClick={() => ai.setReview({ title: "Assistant changes", explanation: undefined, patches: e.patches!, model: e.model })} data-testid="ai-chat-review">
@@ -221,7 +221,7 @@ function AiChatView({ html, editorRef, ai }: { html: string; editorRef: React.Re
             )}
           </div>
         ))}
-        {sending && <p className="text-muted-foreground flex items-center gap-2 text-xs"><Loader2 className="size-3.5 animate-spin" /> Claude is thinking…</p>}
+        {sending && <p className="text-muted-foreground flex items-center gap-2 text-xs"><Loader2 className="size-3.5 animate-spin" /> Thinking…</p>}
         <div ref={endRef} />
       </div>
       <form className="grid gap-1.5 border-t p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
