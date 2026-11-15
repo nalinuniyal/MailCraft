@@ -1,0 +1,55 @@
+# Minimal local Supabase-compatible stack (Postgres + GoTrue + PostgREST + gateway)
+# used for end-to-end tests when the Supabase CLI is unavailable.
+# Usage: e2e/stack/up.sh   (prints the env vars to use)
+name: mailcraft-local
+services:
+  db:
+    image: supabase/postgres:15.8.1.060
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - ./roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+    ports: ["54322:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 3s
+      retries: 30
+  auth:
+    image: supabase/gotrue:v2.170.0
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:54321
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_URI_ALLOW_LIST: http://localhost:3000/**
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@example.test
+      GOTRUE_SMTP_HOST: localhost
+      GOTRUE_SMTP_PORT: 2500
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+  gateway:
+    image: node:22-alpine
+    depends_on: [auth, rest]
+    command: ["node", "/gateway.mjs"]
+    volumes: ["./gateway.mjs:/gateway.mjs:ro"]
+    ports: ["54321:8000"]
