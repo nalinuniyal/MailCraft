@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:db": "bash scripts/test-db.sh",
-    "test:e2e": "playwright test --trace off"
+    "test:e2e": "playwright test --trace off",
+    "postinstall": "node scripts/copy-monaco.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -23,6 +24,9 @@
     "css-tree": "^3.2.1",
     "date-fns": "^4.4.0",
     "diff": "^9.0.0",
+    "dom-serializer": "^3.1.1",
+    "domhandler": "^6.0.1",
+    "domutils": "^4.0.2",
     "htmlparser2": "^12.0.0",
     "lucide-react": "^1.73.0",
     "monaco-editor": "^0.57.0",
