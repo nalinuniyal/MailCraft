@@ -17,7 +17,7 @@ import type { PreferencesRow } from "@/lib/types/database";
 
 type Prefs = Pick<PreferencesRow, "theme" | "editor_font_size" | "editor_word_wrap" | "editor_minimap" | "autosave" | "default_viewport">;
 
-export function SettingsForms({ email, displayName, prefs, system }: { email: string; displayName: string; prefs: Prefs; system: { ai: { analyze: string; assist: string } | null; aiPerHour: number; linksPerHour: number } }) {
+export function SettingsForms({ email, displayName, prefs, system }: { email: string; displayName: string; prefs: Prefs; system: { ai: { label: string; models: { analyze: string; assist: string } } | null; aiPerHour: number; linksPerHour: number } }) {
   return (
     <div className="grid gap-5">
       <ProfileCard email={email} displayName={displayName} />
@@ -26,8 +26,8 @@ export function SettingsForms({ email, displayName, prefs, system }: { email: st
       <Card>
         <CardHeader><CardTitle>Workspace limits</CardTitle><CardDescription>Set by this deployment&apos;s environment.</CardDescription></CardHeader>
         <CardContent className="grid gap-2 text-sm">
-          <p className="flex items-center justify-between">Claude AI {system.ai ? <Badge variant="success">Configured</Badge> : <Badge variant="outline">Not configured</Badge>}</p>
-          {system.ai && <p className="text-muted-foreground text-xs">Analysis and fixes: {system.ai.analyze} · Assistant: {system.ai.assist}</p>}
+          <p className="flex items-center justify-between">AI provider {system.ai ? <Badge variant="success">{system.ai.label}</Badge> : <Badge variant="outline">Not configured</Badge>}</p>
+          {system.ai && <p className="text-muted-foreground text-xs">Analysis and fixes: {system.ai.models.analyze} · Assistant: {system.ai.models.assist}</p>}
           <p className="flex items-center justify-between">AI requests per hour <span className="tabular-nums">{system.aiPerHour}</span></p>
           <p className="flex items-center justify-between">Link checks per hour <span className="tabular-nums">{system.linksPerHour}</span></p>
         </CardContent>

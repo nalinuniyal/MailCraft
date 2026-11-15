@@ -3,7 +3,7 @@
  * or called yet; it documents the shape so the UI never pretends otherwise.
  *
  * Credentials (client id/secret, auth base URL) would be server-only env vars
- * read by a "server-only" module, mirroring src/lib/ai/anthropic.ts.
+ * read by a "server-only" module, mirroring src/lib/ai/provider.ts.
  */
 export interface SfmcAsset {
   id: number;

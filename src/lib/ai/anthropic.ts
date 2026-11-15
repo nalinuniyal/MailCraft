@@ -1,49 +1,27 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import type { ZodType } from "zod";
-
-/* The only module that touches ANTHROPIC_API_KEY. "server-only" makes any
- * accidental import from a client component a build error. */
-
-export const AI_MODELS = {
-  analyze: process.env.ANTHROPIC_MODEL_ANALYZE || "claude-opus-5-5",
-  assist: process.env.ANTHROPIC_MODEL_ASSIST || "claude-sonnet-5-5",
-};
-
-export function isAiConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
-}
+import { AiError, type AiProvider } from "./provider";
+import type { StructuredRequest, StructuredResult } from "./client";
 
 let client: Anthropic | null = null;
-function getClient(): Anthropic {
-  if (!client) client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 180_000 });
+let clientKey = "";
+function getClient(apiKey: string): Anthropic {
+  if (!client || clientKey !== apiKey) {
+    client = new Anthropic({ apiKey, maxRetries: 2, timeout: 180_000 });
+    clientKey = apiKey;
+  }
   return client;
 }
 
-export class AiError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
-  }
-}
-
 /**
- * One structured-output call. Streams internally (long HTML inputs and outputs)
- * and returns the validated object. Server-side fallbacks retry a safety
- * decline on Anthropic's recommended fallback model.
+ * Claude call. Streams internally (long HTML inputs and outputs) and returns the
+ * validated object. Server-side fallbacks retry a safety decline on Anthropic's
+ * recommended fallback model.
  */
-export async function callStructured<T>(opts: {
-  model: string;
-  system: string;
-  messages: Anthropic.Beta.BetaMessageParam[];
-  jsonSchema: Record<string, unknown>;
-  schema: ZodType<T>;
-  effort: "low" | "medium" | "high";
-  maxTokens?: number;
-}): Promise<{ data: T; model: string; usage: { input: number; output: number } }> {
-  if (!isAiConfigured()) throw new AiError("AI is not configured on this server.", 503);
+export async function callAnthropic<T>(p: AiProvider, opts: StructuredRequest<T>): Promise<StructuredResult<T>> {
   let message: Anthropic.Beta.BetaMessage;
   try {
-    const stream = getClient().beta.messages.stream({
+    const stream = getClient(p.apiKey).beta.messages.stream({
       model: opts.model,
       max_tokens: opts.maxTokens ?? 32000,
       betas: ["server-side-fallback-2026-07-01"],

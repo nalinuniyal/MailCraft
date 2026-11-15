@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           <ul className="text-muted-foreground max-w-md space-y-3 text-sm">
             <li>• Monaco editor with live, sandboxed preview</li>
             <li>• Compatibility checks backed by Can I Email data</li>
-            <li>• Claude-powered analysis and reviewable fixes</li>
+            <li>• AI-powered analysis and reviewable fixes</li>
             <li>• Versions, templates, components and SFMC toolkit</li>
           </ul>
           <pre className="bg-card text-muted-foreground max-w-md overflow-hidden rounded-lg border p-4 font-mono text-[11px] leading-relaxed">

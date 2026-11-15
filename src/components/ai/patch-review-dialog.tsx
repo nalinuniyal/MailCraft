@@ -16,7 +16,7 @@ export interface PatchReview {
 }
 
 /**
- * Nothing Claude proposes reaches the editor until the user approves it here.
+ * Nothing the AI proposes reaches the editor until the user approves it here.
  * Each patch can be toggled; the diff shows exactly what Apply will change.
  */
 export function PatchReviewDialog({ review, html, onClose, onApply }: { review: PatchReview | null; html: string; onClose: () => void; onApply: (next: string, applied: Patch[]) => void }) {
@@ -42,13 +42,13 @@ export function PatchReviewDialog({ review, html, onClose, onApply }: { review: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Sparkles className="text-primary size-4" /> {review?.title ?? "Review changes"}</DialogTitle>
           <DialogDescription>
-            Review Claude&apos;s proposed edits. Nothing changes until you apply them, and you can undo afterwards.
+            Review the AI&apos;s proposed edits. Nothing changes until you apply them, and you can undo afterwards.
             {review?.model && <span className="text-muted-foreground/80"> · {review.model}</span>}
           </DialogDescription>
         </DialogHeader>
         {review?.explanation && <p className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-wrap">{review.explanation}</p>}
         {review && review.patches.length === 0 ? (
-          <p className="text-muted-foreground py-8 text-center text-sm">Claude did not propose any code changes for this.</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">The AI did not propose any code changes for this.</p>
         ) : (
           <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-[280px_1fr]">
             <ul className="scrollbar-thin grid content-start gap-1.5 overflow-y-auto pr-1">

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { StudioWorkspace } from "@/components/studio/studio-workspace";
-import { isAiConfigured } from "@/lib/ai/anthropic";
+import { isAiConfigured } from "@/lib/ai/client";
 import { loadCategories, loadComponents } from "@/lib/data/library";
 
 export async function generateMetadata({ params }: PageProps<"/studio/[projectId]">): Promise<Metadata> {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AI_MODELS, callStructured } from "@/lib/ai/anthropic";
+import { callStructured } from "@/lib/ai/client";
 import { FIX_SYSTEM, emailBlock } from "@/lib/ai/prompts";
 import { AiFixSchema, AI_FIX_JSON_SCHEMA } from "@/lib/ai/schemas";
 import { aiRequest, aiErrorResponse, AI_MAX_HTML_BYTES } from "@/lib/ai/route";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   ].filter(Boolean).join("\n");
   try {
     const result = await callStructured({
-      model: AI_MODELS.analyze,
+      task: "analyze",
       system: FIX_SYSTEM,
       messages: [{ role: "user", content: `${emailBlock(html)}\n\n<issue>\n${issueText}\n</issue>\n\nFix this issue.` }],
       jsonSchema: AI_FIX_JSON_SCHEMA,

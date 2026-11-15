@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const FEATURES = [
   { icon: Code2, title: "Email Code Studio", body: "Monaco editor, upload/paste, formatting, versioning and a split-screen sandboxed preview." },
   { icon: ShieldCheck, title: "Compatibility checks", body: "CSS & HTML feature detection mapped to Can I Email support data, with source and date shown." },
-  { icon: Sparkles, title: "Claude-powered analysis", body: "Severity-ranked issues and reviewable fixes. Nothing changes without your approval." },
+  { icon: Sparkles, title: "AI-powered analysis", body: "Severity-ranked issues and reviewable fixes. Nothing changes without your approval." },
   { icon: MonitorSmartphone, title: "Responsive preview", body: "Desktop, tablet, mobile and custom widths, plus dark-mode simulation." },
   { icon: Cloud, title: "SFMC toolkit", body: "AMPscript & SSJS highlighting, snippets, personalization strings and lint warnings." },
   { icon: History, title: "Versions & QA reports", body: "Compare and restore versions; generate downloadable QA reports." },
@@ -26,7 +26,7 @@ export default function Home() {
         <p className="text-primary font-mono text-xs tracking-widest uppercase">For HTML email developers</p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">Build, debug and validate HTML email in one studio.</h1>
         <p className="text-muted-foreground mt-5 max-w-2xl text-lg">
-          MailCraft AI combines a professional code editor, safe live previews, compatibility analysis and Claude-powered fixes.
+          MailCraft AI combines a professional code editor, safe live previews, compatibility analysis and AI-powered fixes.
         </p>
         <div className="mt-8 flex gap-3">
           <Button asChild size="lg"><Link href="/signup">Create free account</Link></Button>

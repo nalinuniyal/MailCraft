@@ -84,7 +84,7 @@ Indexes on (user_id, updated_at), (project_id, version_number) unique. `updated_
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | client+server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client+server | anon/publishable key (RLS enforced) |
-| `ANTHROPIC_API_KEY` | server only | Claude API |
+| `ANTHROPIC_API_KEY` / `XAI_API_KEY` (`GROK_API_KEY`) / `GROQ_API_KEY` | server only | AI provider (one is enough; `AI_PROVIDER` picks when several are set) |
 | `ANTHROPIC_MODEL_ANALYZE` | server (optional) | default `claude-opus-5-5` |
 | `ANTHROPIC_MODEL_ASSIST` | server (optional) | default `claude-sonnet-5-5` |
 | `NEXT_PUBLIC_SITE_URL` | client+server | auth redirect URLs |
