@@ -69,6 +69,12 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- accounts that signed up before this schema existed
+insert into public.profiles (id, display_name)
+  select id, coalesce(raw_user_meta_data ->> 'display_name', split_part(email, '@', 1)) from auth.users
+  on conflict (id) do nothing;
+insert into public.user_preferences (user_id) select id from auth.users on conflict (user_id) do nothing;
+
 -- ---------------------------------------------------------------------------
 -- projects (an email being developed)
 -- ---------------------------------------------------------------------------
@@ -325,6 +331,7 @@ alter table public.api_rate_limits enable row level security; -- no policies: on
 
 -- profiles
 create policy "profiles: read own" on public.profiles for select to authenticated using (id = (select auth.uid()));
+create policy "profiles: insert own" on public.profiles for insert to authenticated with check (id = (select auth.uid()));
 create policy "profiles: update own" on public.profiles for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
 -- preferences
