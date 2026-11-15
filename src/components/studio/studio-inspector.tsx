@@ -1,6 +1,8 @@
 "use client";
 import * as React from "react";
-import { History, ListChecks, ShieldCheck } from "lucide-react";
+import { History, ListChecks, Loader2, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AiPanel, useAiReview } from "@/components/ai/ai-panel";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VersionsPanel } from "./versions-panel";
@@ -26,6 +28,7 @@ export interface InspectorProps {
   persist: Persist;
   /** Incremented by the toolbar's Analyze button to trigger a full analysis. */
   analyzeNonce: number;
+  aiConfigured: boolean;
 }
 
 export function StudioInspector(props: InspectorProps) {
@@ -35,6 +38,7 @@ export function StudioInspector(props: InspectorProps) {
   const counts = countIssues(analysis.issues);
   const urgent = counts.critical + counts.high;
   const { analyze } = analysis;
+  const ai = useAiReview({ html, applyExternal, persist });
   React.useEffect(() => {
     if (props.analyzeNonce > 0) void analyze();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on explicit Analyze clicks
@@ -56,18 +60,33 @@ export function StudioInspector(props: InspectorProps) {
             {analysis.issues.length > 0 && <span className={urgent ? "bg-sev-critical/20 text-sev-critical rounded px-1 text-[10px] tabular-nums" : "bg-muted rounded px-1 text-[10px] tabular-nums"}>{analysis.issues.length}</span>}
           </TabsTrigger>
           <TabsTrigger value="compat" className="text-xs"><ShieldCheck /> Compat</TabsTrigger>
+          <TabsTrigger value="ai" className="text-xs" data-testid="tab-ai"><Sparkles /> AI</TabsTrigger>
           <TabsTrigger value="versions" className="text-xs"><History /> Versions</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="issues" className="min-h-0 overflow-y-auto scrollbar-thin">
-        <IssuesTab analysis={analysis} html={html} projectId={projectId} onReveal={(l) => onRevealLine(l)} />
+        <IssuesTab
+          analysis={analysis}
+          html={html}
+          projectId={projectId}
+          onReveal={(l) => onRevealLine(l)}
+          renderActions={props.aiConfigured ? (i) => (
+            <Button size="xs" variant="outline" disabled={!!ai.fixingId} onClick={() => void ai.fixIssue(i)} data-testid="fix-with-ai">
+              {ai.fixingId === i.id ? <Loader2 className="animate-spin" /> : <Wand2 />} Fix with AI
+            </Button>
+          ) : undefined}
+        />
       </TabsContent>
       <TabsContent value="compat" className="min-h-0 overflow-y-auto scrollbar-thin">
         <CompatTab analysis={analysis} html={html} onReveal={(l) => onRevealLine(l)} />
       </TabsContent>
+      <TabsContent value="ai" className="min-h-0" forceMount hidden={tab !== "ai"}>
+        <AiPanel configured={props.aiConfigured} html={html} projectId={projectId} editorRef={props.editorRef} ai={ai} onReveal={(l) => onRevealLine(l)} />
+      </TabsContent>
       <TabsContent value="versions" className="min-h-0 overflow-y-auto scrollbar-thin">
         <VersionsPanel projectId={projectId} onRestore={restore} refreshKey={versionsKey} />
       </TabsContent>
+      {ai.dialog}
     </Tabs>
   );
 }

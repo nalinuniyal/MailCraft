@@ -27,6 +27,8 @@ export interface CodeEditorHandle {
   foldAll(): void;
   unfoldAll(): void;
   getModel(): MonacoEditor.ITextModel | null;
+  /** Text of the current selection, or empty string. */
+  getSelectionText(): string;
 }
 
 interface Props {
@@ -61,6 +63,12 @@ export const CodeEditor = React.forwardRef<CodeEditorHandle, Props>(function Cod
 
   React.useImperativeHandle(ref, () => ({
     getValue: () => editorRef.current?.getValue() ?? "",
+    getSelectionText() {
+      const ed = editorRef.current;
+      const sel = ed?.getSelection();
+      const model = ed?.getModel();
+      return sel && model && !sel.isEmpty() ? model.getValueInRange(sel) : "";
+    },
     replaceAll(next, label = "replace") {
       const ed = editorRef.current;
       const model = ed?.getModel();
