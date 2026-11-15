@@ -29,7 +29,7 @@ export async function saveProfile(input: { display_name: string }): Promise<Acti
   const name = z.string().trim().max(80, "Name must be 80 characters or fewer.").safeParse(input.display_name);
   if (!name.success) return { ok: false, error: name.error.issues[0].message };
   const supabase = await createClient();
-  const { error } = await supabase.from("profiles").update({ display_name: name.data || null }).eq("id", user.id);
+  const { error } = await supabase.from("profiles").upsert({ id: user.id, display_name: name.data || null });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };

@@ -8,7 +8,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
       <div className="grid max-w-md justify-items-center gap-3 text-center">
         <span className="bg-destructive/10 flex size-11 items-center justify-center rounded-full"><AlertTriangle className="text-destructive size-5" /></span>
         <h2 className="font-semibold">Something went wrong</h2>
-        <p className="text-muted-foreground text-sm">{error.message || "An unexpected error occurred."}</p>
+        <p className="text-muted-foreground text-sm">{error.digest && /^Minified React error|Server Components render/.test(error.message) ? "The server hit an error while loading this page. The reference below matches the entry in the server logs." : error.message || "An unexpected error occurred."}</p>
         {error.digest && <p className="text-muted-foreground font-mono text-xs">Ref: {error.digest}</p>}
         <Button onClick={reset} variant="outline" size="sm"><RotateCcw /> Try again</Button>
       </div>
