@@ -32,7 +32,7 @@ function useDebounced<T>(value: T, ms: number) {
 const VIEWPORT_ICONS = { desktop: Monitor, tablet: Tablet, mobile: Smartphone } as const;
 
 /** The sandboxed frame. No allow-scripts, no allow-same-origin: email HTML can never run code in the app. */
-export function PreviewFrame({ doc, width, dark, title = "Email preview", className }: { doc: string; width: number; dark: DarkMode; title?: string; className?: string }) {
+export function PreviewFrame({ doc, width, dark, title = "Email preview", className }: { doc: string; width: number | string; dark: DarkMode; title?: string; className?: string }) {
   return (
     <iframe
       title={title}

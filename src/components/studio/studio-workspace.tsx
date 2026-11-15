@@ -5,7 +5,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { toast } from "sonner";
 import {
   Save, Wand2, Download, Copy, Upload, Search, Undo2, Redo2, Eye, EyeOff, ChevronLeft, MoreHorizontal, FoldVertical, UnfoldVertical,
-  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose,
+  Loader2, CheckCircle2, CircleDot, AlertCircle, History, FileDown, PanelRightOpen, PanelRightClose, ShieldCheck, Sparkles, Blocks, LayoutTemplate,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,6 +18,7 @@ import { EmailPreview, DEFAULT_PREVIEW, type PreviewState } from "@/components/p
 import { ProjectTitle } from "./project-title";
 import { useProjectSave } from "./use-save";
 import { StudioInspector, type InspectorTab } from "./studio-inspector";
+import { InsertComponentSheet, SaveAsTemplateDialog, SaveComponentDialog, type StudioLibraryData } from "./studio-library";
 import { formatHtml } from "@/lib/email/format";
 import { readEmailFile } from "@/lib/email/upload";
 import { downloadText } from "@/lib/download";
@@ -32,13 +33,11 @@ export interface StudioProject {
   updated_at: string;
 }
 
-const ANALYSIS_ENABLED = false;
-
 function hasAmpscript(html: string) {
   return /%%\[|%%=/.test(html);
 }
 
-export function StudioWorkspace({ project, prefs }: { project: StudioProject; prefs: Pick<PreferencesRow, "editor_font_size" | "editor_word_wrap" | "editor_minimap" | "autosave" | "default_viewport"> }) {
+export function StudioWorkspace({ project, prefs, aiConfigured = false, library }: { project: StudioProject; aiConfigured?: boolean; library: StudioLibraryData; prefs: Pick<PreferencesRow, "editor_font_size" | "editor_word_wrap" | "editor_minimap" | "autosave" | "default_viewport"> }) {
   const editor = React.useRef<CodeEditorHandle>(null);
   const [name, setName] = React.useState(project.name);
   const [html, setHtml] = React.useState(project.html);
@@ -46,9 +45,13 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
   const [showPreview, setShowPreview] = React.useState(true);
   const [showInspector, setShowInspector] = React.useState(true);
   const [inspectorTab, setInspectorTab] = React.useState<InspectorTab>("issues");
+  const [analyzeNonce, setAnalyzeNonce] = React.useState(0);
   const [markers, setMarkers] = React.useState<EditorMarker[]>([]);
   const [pendingUpload, setPendingUpload] = React.useState<{ name: string; html: string } | null>(null);
   const [versionDialog, setVersionDialog] = React.useState(false);
+  const [insertOpen, setInsertOpen] = React.useState(false);
+  const [templateOpen, setTemplateOpen] = React.useState(false);
+  const [componentHtml, setComponentHtml] = React.useState<string | null>(null);
   const [versionMsg, setVersionMsg] = React.useState("");
   const [dragging, setDragging] = React.useState(false);
   const [formatting, setFormatting] = React.useState(false);
@@ -141,7 +144,8 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
             {showPreview ? <EyeOff /> : <Eye />} <span className="hidden lg:inline">Preview</span>
           </Button>
           <Button size="sm" variant="ghost" onClick={download}><Download /> <span className="hidden lg:inline">Download</span></Button>
-          <StudioActionsSlot editorRef={editor} html={html} onOpenInspector={(tab) => { setInspectorTab(tab); setShowInspector(true); }} />
+          <Button size="sm" variant="ghost" onClick={() => setInsertOpen(true)} data-testid="insert-button"><Blocks /> <span className="hidden lg:inline">Insert</span></Button>
+          <StudioActionsSlot editorRef={editor} html={html} onOpenInspector={(tab) => { setInspectorTab(tab); setShowInspector(true); if (tab === "issues") setAnalyzeNonce((n) => n + 1); }} />
           <Button size="sm" onClick={() => save()} disabled={status.state === "saving"} data-testid="save-button">
             {status.state === "saving" ? <Loader2 className="animate-spin" /> : <Save />} Save
           </Button>
@@ -149,6 +153,8 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
             <DropdownMenuTrigger asChild><Button size="icon-sm" variant="ghost" aria-label="More actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onSelect={() => { setVersionMsg(""); setVersionDialog(true); }}><History /> Save version with message…</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setTemplateOpen(true)} data-testid="save-as-template"><LayoutTemplate /> Save as template…</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => { const sel = editor.current?.getSelectionText() ?? ""; if (!sel.trim()) return void toast.info("Select some HTML in the editor first."); setComponentHtml(sel); }}><Blocks /> Save selection as component…</DropdownMenuItem>
               <DropdownMenuItem onSelect={copy}><Copy /> Copy source</DropdownMenuItem>
               <DropdownMenuItem onSelect={download}><FileDown /> Download .html</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => fileInput.current?.click()}><Upload /> Replace with uploaded file…</DropdownMenuItem>
@@ -222,6 +228,8 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
                 editorRef={editor}
                 applyExternal={applyExternal}
                 persist={persist}
+                analyzeNonce={analyzeNonce}
+                aiConfigured={aiConfigured}
               />
             </Panel>
           </>
@@ -254,6 +262,9 @@ export function StudioWorkspace({ project, prefs }: { project: StudioProject; pr
         </AlertDialogContent>
       </AlertDialog>
 
+      <InsertComponentSheet open={insertOpen} onOpenChange={setInsertOpen} components={library.components} editorRef={editor} />
+      <SaveAsTemplateDialog open={templateOpen} onOpenChange={setTemplateOpen} html={html} name={name} categories={library.categories} />
+      <SaveComponentDialog html={componentHtml} onClose={() => setComponentHtml(null)} />
       <Dialog open={versionDialog} onOpenChange={setVersionDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Save version</DialogTitle></DialogHeader>
@@ -281,14 +292,13 @@ function ToolbarButton({ label, shortcut, onClick, icon: Icon }: { label: string
 
 /** Analyze / AI Fix buttons; they open the matching inspector tab. */
 function StudioActionsSlot({ onOpenInspector }: { editorRef: React.RefObject<CodeEditorHandle | null>; html: string; onOpenInspector: (tab: InspectorTab) => void }) {
-  if (!ANALYSIS_ENABLED) return null;
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => onOpenInspector("issues")} data-testid="analyze-button">
-        <Search /> <span className="hidden md:inline">Analyze</span>
+        <ShieldCheck /> <span className="hidden md:inline">Analyze</span>
       </Button>
-      <Button size="sm" variant="outline" onClick={() => onOpenInspector("ai")} data-testid="ai-fix-button">
-        <Wand2 /> <span className="hidden md:inline">AI Fix</span>
+      <Button size="sm" variant="outline" onClick={() => onOpenInspector("ai")} data-testid="ai-button">
+        <Sparkles /> <span className="hidden md:inline">AI</span>
       </Button>
     </>
   );

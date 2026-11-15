@@ -84,14 +84,16 @@ Indexes on (user_id, updated_at), (project_id, version_number) unique. `updated_
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | client+server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client+server | anon/publishable key (RLS enforced) |
-| `ANTHROPIC_API_KEY` | server only | Claude API |
+| `ANTHROPIC_API_KEY` / `XAI_API_KEY` (`GROK_API_KEY`) / `GROQ_API_KEY` | server only | AI provider (one is enough; `AI_PROVIDER` picks when several are set) |
 | `ANTHROPIC_MODEL_ANALYZE` | server (optional) | default `claude-opus-5-5` |
 | `ANTHROPIC_MODEL_ASSIST` | server (optional) | default `claude-sonnet-5-5` |
 | `NEXT_PUBLIC_SITE_URL` | client+server | auth redirect URLs |
-| `AI_RATE_LIMIT_PER_HOUR` / `LINK_CHECK_RATE_LIMIT_PER_HOUR` | server (optional) | request limits |
+| `AI_RATE_LIMIT_PER_HOUR`, `LINK_CHECK_RATE_LIMIT_PER_HOUR`, `ANALYZE_RATE_LIMIT_PER_HOUR`, `PROJECT_CREATE_RATE_LIMIT_PER_HOUR`, `REPORT_RATE_LIMIT_PER_HOUR`, `LIBRARY_WRITE_RATE_LIMIT_PER_HOUR` | server (optional) | per-user hourly request limits |
 | future: `LITMUS_API_KEY`, `EMAILONACID_API_KEY`, `SFMC_CLIENT_ID/SECRET/SUBDOMAIN` | server | integrations |
 
 ## 5. Phase plan
+
+All six phases are implemented. Deployment steps are in `docs/DEPLOYMENT.md`.
 
 1. **Foundation** – Next.js app, Tailwind/shadcn design system, dark/light themes, collapsible sidebar shell, Supabase auth (sign up / in / out / reset), proxy session refresh, migrations + RLS + seed, dashboard with real counts from the DB and empty states.
 2. **Code Studio** – Monaco editor, new/upload (click + drag-drop, type & size validated)/paste, format, find/replace, save + autosave versions, download, copy, split-screen live sandboxed preview.
