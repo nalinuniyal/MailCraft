@@ -6,6 +6,11 @@ import { logActivity } from "@/lib/activity";
 import { MAX_HTML_BYTES } from "@/lib/email/limits";
 import { byteLength } from "@/lib/utils";
 import { createProject, type ActionResult } from "./projects";
+import { consumeRateLimit, envInt } from "@/lib/rate-limit";
+
+async function libraryLimit(supabase: Awaited<ReturnType<typeof createClient>>) {
+  return (await consumeRateLimit(supabase, "library-write", envInt("LIBRARY_WRITE_RATE_LIMIT_PER_HOUR", 120))).allowed;
+}
 
 const MAX_COMPONENT_BYTES = 256 * 1024;
 const name = z.string().trim().min(1, "Name is required.").max(120, "Name must be 120 characters or fewer.");
@@ -37,6 +42,7 @@ export async function saveTemplate(input: z.input<typeof TemplateInput> & { id?:
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const v = parsed.data;
   const supabase = await createClient();
+  if (!(await libraryLimit(supabase))) return { ok: false, error: "Too many saves in the last hour. Try again later." };
   const row = { name: v.name, description: v.description, category_id: v.categoryId ?? null, tags: v.tags, html: v.html };
   const query = input.id
     ? supabase.from("email_templates").update(row).eq("id", input.id).eq("is_system", false)
@@ -74,6 +80,7 @@ export async function saveComponent(input: z.input<typeof ComponentInput> & { id
   const parsed = ComponentInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const supabase = await createClient();
+  if (!(await libraryLimit(supabase))) return { ok: false, error: "Too many saves in the last hour. Try again later." };
   const query = input.id
     ? supabase.from("saved_components").update(parsed.data).eq("id", input.id).eq("is_system", false)
     : supabase.from("saved_components").insert(parsed.data);

@@ -1,14 +1,12 @@
 "use client";
 import * as React from "react";
-import { DiffEditor, loader, type DiffOnMount } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
-import { AlertTriangle, Check, Loader2, Sparkles } from "lucide-react";
+import { HtmlDiff } from "@/components/editor/html-diff";
+import { AlertTriangle, Check, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { applyPatches, PATCH_FAILURE_LABEL, type Patch } from "@/lib/ai/patches";
 import { cn } from "@/lib/utils";
-
-loader.config({ paths: { vs: "/monaco/vs" } });
 
 export interface PatchReview {
   title: string;
@@ -77,7 +75,7 @@ export function PatchReviewDialog({ review, html, onClose, onApply }: { review: 
               })}
             </ul>
             <div className="min-h-[300px] overflow-hidden rounded-md border">
-              <PatchDiff original={html} modified={result.html} theme={resolvedTheme === "light" ? "vs" : "vs-dark"} />
+              <HtmlDiff original={html} modified={result.html} theme={resolvedTheme === "light" ? "vs" : "vs-dark"} />
             </div>
           </div>
         )}
@@ -89,36 +87,5 @@ export function PatchReviewDialog({ review, html, onClose, onApply }: { review: 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/* @monaco-editor/react disposes the models before the diff widget lets go of
- * them on unmount, which throws. Keep the models and dispose them ourselves. */
-function PatchDiff({ original, modified, theme }: { original: string; modified: string; theme: string }) {
-  const ref = React.useRef<Parameters<DiffOnMount>[0] | null>(null);
-  React.useEffect(
-    () => () => {
-      const ed = ref.current;
-      const models = ed?.getModel();
-      ed?.setModel(null);
-      models?.original.dispose();
-      models?.modified.dispose();
-    },
-    [],
-  );
-  return (
-    <DiffEditor
-      original={original}
-      modified={modified}
-      language="html"
-      theme={theme}
-      keepCurrentOriginalModel
-      keepCurrentModifiedModel
-      onMount={(ed) => {
-        ref.current = ed;
-      }}
-      loading={<Loader2 className="text-muted-foreground size-5 animate-spin" />}
-      options={{ readOnly: true, originalEditable: false, renderSideBySide: true, minimap: { enabled: false }, fontSize: 12, scrollBeyondLastLine: false, automaticLayout: true, wordWrap: "on", diffWordWrap: "on", hideUnchangedRegions: { enabled: true } }}
-    />
   );
 }

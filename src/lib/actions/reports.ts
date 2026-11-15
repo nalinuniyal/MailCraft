@@ -7,6 +7,7 @@ import { analyzeCompatibility } from "@/lib/email/compat";
 import { buildQaReport, type QaReport } from "@/lib/email/qa";
 import { logActivity } from "@/lib/activity";
 import { MAX_HTML_BYTES } from "@/lib/email/limits";
+import { consumeRateLimit, envInt } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/utils";
 import type { Issue } from "@/lib/email/types";
 import type { Json } from "@/lib/types/database";
@@ -26,6 +27,8 @@ export async function createQaReport(input: z.input<typeof Input>): Promise<{ ok
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { projectId, html, links } = parsed.data;
   const supabase = await createClient();
+  const limit = await consumeRateLimit(supabase, "report-create", envInt("REPORT_RATE_LIMIT_PER_HOUR", 60));
+  if (!limit.allowed) return { ok: false, error: "Report limit reached for this hour. Try again later." };
 
   let projectName = "Ad-hoc email";
   let versionId: string | null = null;
