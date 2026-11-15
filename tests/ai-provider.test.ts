@@ -97,3 +97,56 @@ describe("OpenAI-compatible client", () => {
     expect(extractJson('```json\n{"a":1}\n```')).toEqual({ a: 1 });
   });
 });
+
+describe("OpenAI-compatible client: Groq resilience", () => {
+  const schema = z.object({ reply: z.string() });
+  const jsonSchema = { type: "object", additionalProperties: false, required: ["reply"], properties: { reply: { type: "string" } } };
+  const req = { task: "analyze" as const, system: "sys", messages: [{ role: "user" as const, content: "hi" }], jsonSchema, schema, effort: "high" as const };
+  const reply = (status: number, body: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
+  const ok = () => reply(200, { choices: [{ finish_reason: "stop", message: { content: '{"reply":"ok"}' } }] });
+  const bodyOf = (m: ReturnType<typeof vi.fn>, i: number) => JSON.parse(String((m.mock.calls[i] as unknown as [string, RequestInit])[1].body));
+
+  it("retries in JSON mode when strict JSON generation fails", async () => {
+    setEnv({ GROQ_API_KEY: "g" });
+    const fetchMock = vi.fn().mockResolvedValueOnce(reply(400, { error: { message: "Failed to generate JSON. Please adjust your prompt.", code: "json_validate_failed" } })).mockResolvedValueOnce(ok());
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await callStructured(req)).data.reply).toBe("ok");
+    expect(bodyOf(fetchMock, 1).response_format).toEqual({ type: "json_object" });
+  });
+
+  it("explains a JSON generation failure that persists", async () => {
+    setEnv({ GROQ_API_KEY: "g" });
+    vi.stubGlobal("fetch", vi.fn(async () => reply(400, { error: { message: "Failed to generate JSON.", code: "json_validate_failed" } })));
+    await expect(callStructured(req)).rejects.toThrow(/could not produce a valid answer/);
+  });
+
+  it("waits out a short 429 once, but not a long one", async () => {
+    setEnv({ GROQ_API_KEY: "g" });
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockResolvedValueOnce(reply(429, {}, { "retry-after": "2" })).mockResolvedValueOnce(ok());
+      vi.stubGlobal("fetch", fetchMock);
+      const p = callStructured(req);
+      await vi.advanceTimersByTimeAsync(3000);
+      expect((await p).data.reply).toBe("ok");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+    const slow = vi.fn(async () => reply(429, {}, { "retry-after": "50" }));
+    vi.stubGlobal("fetch", slow);
+    await expect(callStructured(req)).rejects.toMatchObject({ status: 429 });
+    expect(slow).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps gpt-oss reasoning light on Groq only", async () => {
+    setEnv({ GROQ_API_KEY: "g" });
+    const fetchMock = vi.fn(async () => ok());
+    vi.stubGlobal("fetch", fetchMock);
+    await callStructured(req);
+    expect(bodyOf(fetchMock, 0).reasoning_effort).toBe("medium");
+    setEnv({ XAI_API_KEY: "x" });
+    await callStructured(req);
+    expect(bodyOf(fetchMock, 1).reasoning_effort).toBeUndefined();
+  });
+});
